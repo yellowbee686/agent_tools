@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-analytics-usage"
+version = "0.5.0"
+description = "A local dashboard and CLI for personal ChatGPT Codex token usage"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+
+[project.scripts]
+codex-usage = "codex_usage:main"
+codex-usage-web = "web_server:main"
+
+[tool.setuptools]
+py-modules = ["codex_usage", "usage_store", "web_server"]

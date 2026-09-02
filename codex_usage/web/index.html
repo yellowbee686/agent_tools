@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>Codex Usage</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="Codex Usage 首页">
+        <span class="wordmark-mark" aria-hidden="true">C</span>
+        <span>Codex Usage</span>
+      </a>
+      <div class="account-state">
+        <span class="status-dot" aria-hidden="true"></span>
+        当前 Codex 登录
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">PERSONAL TOKEN LEDGER</p>
+          <h1 id="page-title">看清用量，也看清假设。</h1>
+          <p class="intro-copy">
+            Token 来自当前个人 ChatGPT 账户。费用按 API 单价建模，不代表 ChatGPT 账单。
+          </p>
+        </div>
+        <div class="intro-actions">
+          <button class="quiet-button" id="import-button" type="button" aria-expanded="false" aria-controls="import-panel">
+            导入详细 JSON
+          </button>
+          <button class="quiet-button" id="refresh-button" type="button">
+            刷新账户数据
+          </button>
+        </div>
+      </section>
+
+      <div class="error-banner" id="error-banner" role="alert" hidden></div>
+
+      <section class="import-panel" id="import-panel" aria-labelledby="import-title" hidden>
+        <div class="import-copy">
+          <p class="section-kicker">DETAILED SOURCE</p>
+          <h2 id="import-title">粘贴 Network 响应</h2>
+          <ol>
+            <li>在 ChatGPT Analytics 页面打开 DevTools，选择 Network。</li>
+            <li>筛选 <code>daily-token-usage-breakdown</code>，点击成功的请求。</li>
+            <li>在 Response 面板中右键，选择 <strong>Copy response</strong>。</li>
+            <li>回到这里粘贴，只会保存响应 JSON，不包含认证 header。</li>
+          </ol>
+        </div>
+        <div class="import-form">
+          <label for="detailed-json">详细 Token JSON</label>
+          <textarea id="detailed-json" rows="9" spellcheck="false" placeholder='{"data":[{"date":"2026-08-24","totals":{...}}]}'></textarea>
+          <div class="import-actions">
+            <p id="import-status">支持最大 10 MB</p>
+            <button class="primary-button" id="save-import" type="button">保存并校验</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="filter-bar" aria-label="日期范围">
+        <div class="field-group">
+          <label for="start-date">开始日期</label>
+          <input id="start-date" type="date" />
+        </div>
+        <span class="range-arrow" aria-hidden="true">→</span>
+        <div class="field-group">
+          <label for="end-date">结束日期</label>
+          <input id="end-date" type="date" />
+        </div>
+        <p class="filter-note" id="range-note">包含开始和结束当天</p>
+      </section>
+
+      <section class="summary-ledger" aria-live="polite">
+        <div class="summary-item measured">
+          <p class="summary-label">区间实测 Tokens</p>
+          <p class="summary-value skeleton-text" id="total-tokens">加载中</p>
+          <p class="summary-detail" id="token-detail">正在连接 Codex app-server</p>
+        </div>
+        <div class="summary-divider" aria-hidden="true"></div>
+        <div class="summary-item modeled">
+          <p class="summary-label">API 等价费用估算</p>
+          <p class="summary-value skeleton-text" id="estimated-cost">加载中</p>
+          <p class="summary-detail" id="cost-detail">等待价格假设</p>
+        </div>
+      </section>
+
+      <section class="comparison-panel" aria-labelledby="comparison-title">
+        <div class="comparison-header">
+          <div>
+            <p class="section-kicker">CROSS-CHECK</p>
+            <h2 id="comparison-title">双源校验</h2>
+          </div>
+          <span class="validation-badge waiting" id="validation-badge">等待详细数据</span>
+        </div>
+        <div class="source-ledger">
+          <div>
+            <span>Codex app-server</span>
+            <strong id="app-source-state">尚未捕获</strong>
+          </div>
+          <div>
+            <span>ChatGPT 详细响应</span>
+            <strong id="detailed-source-state">尚未导入</strong>
+          </div>
+        </div>
+        <div class="validation-summary" id="validation-summary">
+          <p>导入详细响应后，会按日期对比两边的总 tokens。</p>
+        </div>
+        <details id="comparison-details" hidden>
+          <summary>查看逐日差异</summary>
+          <div class="table-wrap compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">日期</th>
+                  <th scope="col">App-server</th>
+                  <th scope="col">详细响应</th>
+                  <th scope="col">差值</th>
+                  <th scope="col">状态</th>
+                </tr>
+              </thead>
+              <tbody id="comparison-table"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="usage-panel" aria-labelledby="usage-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">MEASURED</p>
+              <h2 id="usage-title">每日 Token 用量</h2>
+            </div>
+            <p id="last-updated">尚未加载</p>
+          </div>
+
+          <div class="chart-legend" aria-label="Token 分类图例">
+            <span><i class="legend-swatch cached"></i>缓存输入</span>
+            <span><i class="legend-swatch uncached"></i>未缓存输入</span>
+            <span><i class="legend-swatch output"></i>输出</span>
+            <span><i class="legend-swatch fallback"></i>仅 App-server 总量</span>
+          </div>
+
+          <div class="chart-shell" id="chart-shell">
+            <div class="chart-skeleton" id="chart-skeleton"></div>
+            <svg
+              id="usage-chart"
+              role="img"
+              aria-label="所选日期范围内每日 Token 用量柱状图"
+              viewBox="0 0 960 320"
+              preserveAspectRatio="none"
+            ></svg>
+            <p class="empty-state" id="chart-empty" hidden>这个范围内没有用量记录。</p>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">日期</th>
+                  <th scope="col">缓存输入</th>
+                  <th scope="col">未缓存输入</th>
+                  <th scope="col">输出</th>
+                  <th scope="col">分类合计</th>
+                  <th scope="col">App-server</th>
+                  <th scope="col">两源差值</th>
+                  <th scope="col">分类费用</th>
+                </tr>
+              </thead>
+              <tbody id="usage-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="pricing-panel" aria-labelledby="pricing-title">
+          <div class="section-heading compact">
+            <div>
+              <p class="section-kicker">MODELED</p>
+              <h2 id="pricing-title">费用假设</h2>
+            </div>
+          </div>
+
+          <div class="assumption-block">
+            <label for="cost-source">Token 构成</label>
+            <select id="cost-source">
+              <option value="auto">自动 · 优先详细响应</option>
+              <option value="detailed">详细响应 · 准确拆分</option>
+              <option value="estimated">App-server · 比例估算</option>
+            </select>
+            <p class="help-copy" id="cost-source-help">
+              尚未导入详细响应，当前使用比例估算。
+            </p>
+          </div>
+
+          <div class="assumption-block">
+            <label for="pricing-profile">价格配置</label>
+            <select id="pricing-profile">
+              <option value="sol">GPT-5.6 Sol · Standard</option>
+              <option value="custom">自定义单价</option>
+            </select>
+            <p class="help-copy">
+              默认采用当前官方标准 API 价。超过 272K 输入的单次请求存在长上下文加价，本估算未计入。
+            </p>
+          </div>
+
+          <div class="rate-grid" aria-label="每百万 Token 单价">
+            <div class="field-group">
+              <label for="input-rate">未缓存输入</label>
+              <div class="money-input"><span>$</span><input id="input-rate" type="number" min="0" step="0.1" value="4" /></div>
+            </div>
+            <div class="field-group">
+              <label for="cached-rate">缓存输入</label>
+              <div class="money-input"><span>$</span><input id="cached-rate" type="number" min="0" step="0.1" value="0.4" /></div>
+            </div>
+            <div class="field-group">
+              <label for="output-rate">输出</label>
+              <div class="money-input"><span>$</span><input id="output-rate" type="number" min="0" step="0.1" value="20" /></div>
+            </div>
+          </div>
+          <p class="unit-label">USD / 1M TOKENS</p>
+
+          <div class="assumption-block shares">
+            <div class="field-row">
+              <div>
+                <label for="cached-percent">缓存输入占比</label>
+                <p>命中 prompt cache 的输入</p>
+              </div>
+              <div class="percent-input"><input id="cached-percent" type="number" min="0" max="100" step="1" value="90" /><span>%</span></div>
+            </div>
+            <div class="field-row">
+              <div>
+                <label for="output-percent">输出占比</label>
+                <p>模型生成与 reasoning tokens</p>
+              </div>
+              <div class="percent-input"><input id="output-percent" type="number" min="0" max="100" step="1" value="1" /><span>%</span></div>
+            </div>
+            <div class="derived-share">
+              <span>未缓存输入占比</span>
+              <strong id="uncached-percent">9%</strong>
+            </div>
+            <p class="help-copy" id="share-source-help">当前比例是可调估算。</p>
+            <p class="inline-error" id="pricing-error" hidden></p>
+          </div>
+
+          <div class="formula-block">
+            <p>当前混合单价</p>
+            <strong id="blended-rate">$0.92 / 1M</strong>
+            <code id="formula-copy">9% × $4 + 90% × $0.4 + 1% × $20</code>
+          </div>
+
+          <a
+            class="source-link"
+            href="https://developers.openai.com/api/docs/models/gpt-5.6-sol"
+            target="_blank"
+            rel="noreferrer"
+          >
+            查看官方 GPT-5.6 Sol 定价
+          </a>
+        </aside>
+      </div>
+    </main>
+
+    <footer>
+      <p>本地运行 · 数据不离开你的电脑</p>
+      <p>实测用量来自 Codex，费用来自你的定价假设。</p>
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
