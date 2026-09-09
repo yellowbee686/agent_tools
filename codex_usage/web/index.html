@@ -197,31 +197,28 @@
           </div>
 
           <div class="assumption-block">
-            <label for="pricing-profile">价格配置</label>
-            <select id="pricing-profile">
-              <option value="sol">GPT-5.6 Sol · Standard</option>
-              <option value="custom">自定义单价</option>
-            </select>
-            <p class="help-copy">
-              默认采用当前官方标准 API 价。超过 272K 输入的单次请求存在长上下文加价，本估算未计入。
+            <label>实际模型</label>
+            <ul class="model-mix-list" id="model-mix"></ul>
+            <p class="help-copy" id="model-mix-help">
+              导入详细响应后，按当天 turns 占比混合官方 Standard API 价。Analytics 不按模型拆 Token。超过 272K 输入的长上下文加价未计入。
             </p>
           </div>
 
-          <div class="rate-grid" aria-label="每百万 Token 单价">
-            <div class="field-group">
-              <label for="input-rate">未缓存输入</label>
-              <div class="money-input"><span>$</span><input id="input-rate" type="number" min="0" step="0.1" value="4" /></div>
+          <div class="rate-grid" aria-label="按 turns 加权的每百万 Token 单价">
+            <div class="rate-readout">
+              <p>未缓存输入</p>
+              <strong id="input-rate">—</strong>
             </div>
-            <div class="field-group">
-              <label for="cached-rate">缓存输入</label>
-              <div class="money-input"><span>$</span><input id="cached-rate" type="number" min="0" step="0.1" value="0.4" /></div>
+            <div class="rate-readout">
+              <p>缓存输入</p>
+              <strong id="cached-rate">—</strong>
             </div>
-            <div class="field-group">
-              <label for="output-rate">输出</label>
-              <div class="money-input"><span>$</span><input id="output-rate" type="number" min="0" step="0.1" value="20" /></div>
+            <div class="rate-readout">
+              <p>输出</p>
+              <strong id="output-rate">—</strong>
             </div>
           </div>
-          <p class="unit-label">USD / 1M TOKENS</p>
+          <p class="unit-label">USD / 1M TOKENS · TURNS 加权</p>
 
           <div class="assumption-block shares">
             <div class="field-row">
@@ -248,17 +245,17 @@
 
           <div class="formula-block">
             <p>当前混合单价</p>
-            <strong id="blended-rate">$0.92 / 1M</strong>
-            <code id="formula-copy">9% × $4 + 90% × $0.4 + 1% × $20</code>
+            <strong id="blended-rate">—</strong>
+            <code id="formula-copy">等待模型占比</code>
           </div>
 
           <a
             class="source-link"
-            href="https://developers.openai.com/api/docs/models/gpt-5.6-sol"
+            href="https://developers.openai.com/api/docs/models"
             target="_blank"
             rel="noreferrer"
           >
-            查看官方 GPT-5.6 Sol 定价
+            查看官方模型定价
           </a>
         </aside>
       </div>

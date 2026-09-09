@@ -709,6 +709,38 @@ tbody tr:hover {
   padding-top: 22px;
 }
 
+.rate-readout p {
+  margin: 0 0 6px;
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+}
+
+.rate-readout strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-mix-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.model-mix-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-mix-list .empty-mix {
+  color: var(--ink-muted);
+}
+
 .money-input,
 .percent-input {
   display: flex;

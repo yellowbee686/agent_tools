@@ -1,8 +1,11 @@
 import {
+  blendModelRates,
+  detailedBucketCost,
   estimateCost,
   estimateDetailedCost,
   filterBuckets,
   mergeDailyUsage,
+  summarizeModelMix,
 } from "./calculations.js";
 
 const elements = {
@@ -33,7 +36,7 @@ const elements = {
   comparisonTable: document.querySelector("#comparison-table"),
   costSource: document.querySelector("#cost-source"),
   costSourceHelp: document.querySelector("#cost-source-help"),
-  pricingProfile: document.querySelector("#pricing-profile"),
+  modelMix: document.querySelector("#model-mix"),
   inputRate: document.querySelector("#input-rate"),
   cachedRate: document.querySelector("#cached-rate"),
   outputRate: document.querySelector("#output-rate"),
@@ -46,11 +49,6 @@ const elements = {
   formulaCopy: document.querySelector("#formula-copy"),
 };
 
-const SOL_PRICING = {
-  inputRate: 4,
-  cachedRate: 0.4,
-  outputRate: 20,
-};
 const STATUS_LABELS = {
   exact: "一致",
   close: "接近",
@@ -85,21 +83,17 @@ const timestampFormatter = new Intl.DateTimeFormat("zh-CN", {
 let usageData = null;
 let estimatedShares = { cachedPercent: 90, outputPercent: 1 };
 
+function formatRate(value) {
+  return Number.isFinite(value) ? `$${Number(value.toFixed(4)).toString()}` : "—";
+}
+
 function parseNumber(input) {
   return Number.parseFloat(input.value);
 }
 
-function currentRates() {
+function estimatedPricing(rates) {
   return {
-    inputRate: parseNumber(elements.inputRate),
-    cachedRate: parseNumber(elements.cachedRate),
-    outputRate: parseNumber(elements.outputRate),
-  };
-}
-
-function estimatedPricing() {
-  return {
-    ...currentRates(),
+    ...rates,
     ...estimatedShares,
   };
 }
@@ -136,19 +130,23 @@ function showImportStatus(message, kind = "") {
   elements.importStatus.className = kind;
 }
 
-function applyPricingProfile() {
-  const isCustom = elements.pricingProfile.value === "custom";
-  for (const [key, input] of [
-    ["inputRate", elements.inputRate],
-    ["cachedRate", elements.cachedRate],
-    ["outputRate", elements.outputRate],
-  ]) {
-    if (!isCustom) {
-      input.value = SOL_PRICING[key];
-    }
-    input.readOnly = !isCustom;
+function renderModelMix(mix) {
+  if (!mix) {
+    elements.modelMix.innerHTML = '<li class="empty-mix">尚未读到模型 turns</li>';
+    elements.inputRate.textContent = "—";
+    elements.cachedRate.textContent = "—";
+    elements.outputRate.textContent = "—";
+    return;
   }
-  render();
+  elements.modelMix.innerHTML = mix.shares
+    .map(
+      (share) =>
+        `<li><span>${share.label}</span><strong>${share.percent}% · ${share.turns} turns</strong></li>`,
+    )
+    .join("");
+  elements.inputRate.textContent = formatRate(mix.inputRate);
+  elements.cachedRate.textContent = formatRate(mix.cachedRate);
+  elements.outputRate.textContent = formatRate(mix.outputRate);
 }
 
 function setShareControls(values, isDetailed) {
@@ -357,8 +355,7 @@ function completeDetailedCoverage(detailedBuckets, startDate, endDate) {
   return true;
 }
 
-function renderCost(appBuckets, totalTokens, startDate, endDate) {
-  const rates = currentRates();
+function renderCost(appBuckets, startDate, endDate) {
   const detailedSource = usageData.sources.detailed;
   const detailedBuckets = detailedSource
     ? filterBuckets(detailedSource.dailyUsageBuckets, startDate, endDate)
@@ -375,6 +372,10 @@ function renderCost(appBuckets, totalTokens, startDate, endDate) {
 
   try {
     elements.pricingError.hidden = true;
+    renderModelMix(summarizeModelMix(detailedBuckets));
+    if (!detailedSource) {
+      throw new Error("导入含模型 turns 的详细响应后才能按实际模型计价");
+    }
     if (useDetailed) {
       if (!hasDetailedCoverage) {
         throw new Error("详细响应没有完整覆盖所选日期范围");
@@ -382,14 +383,42 @@ function renderCost(appBuckets, totalTokens, startDate, endDate) {
       if (detailedBuckets.some((bucket) => bucket.componentDelta !== 0)) {
         throw new Error("详细响应存在未归类 tokens，不能作为准确费用依据");
       }
-      const result = estimateDetailedCost(detailedBuckets, rates);
+      let cost = 0;
+      let pricedTokens = 0;
+      const missingMixDays = [];
+      for (const bucket of detailedBuckets) {
+        const dayCost = detailedBucketCost(bucket);
+        const tokenTotal = (
+          bucket.cachedTextInputTokens
+          + bucket.uncachedTextInputTokens
+          + bucket.textOutputTokens
+        );
+        if (dayCost == null && tokenTotal > 0) {
+          missingMixDays.push(bucket.startDate);
+          continue;
+        }
+        cost += dayCost ?? 0;
+        pricedTokens += tokenTotal;
+      }
+      if (pricedTokens === 0) {
+        throw new Error("缺少可定价的模型 turns 占比");
+      }
+      const result = estimateDetailedCost(
+        detailedBuckets,
+        { inputRate: 0, cachedRate: 0, outputRate: 0 },
+      );
+      const mix = summarizeModelMix(detailedBuckets);
       setShareControls(result, true);
-      elements.costSourceHelp.textContent = "详细响应完整覆盖当前范围，使用准确分类 Token。";
-      elements.estimatedCost.textContent = usdFormatter.format(result.cost);
+      elements.costSourceHelp.textContent = missingMixDays.length
+        ? `按天用模型 turns 加权官方单价。${missingMixDays.join("、")} 缺少模型占比，未计入费用。`
+        : "详细响应完整覆盖当前范围，按天用模型 turns 加权官方单价。";
+      elements.estimatedCost.textContent = usdFormatter.format(cost);
       elements.costDetail.textContent = `${result.cachedPercent}% 缓存输入 · ${result.uncachedPercent}% 未缓存输入 · ${result.outputPercent}% 输出`;
-      const blendedRate = result.totalTokens === 0 ? 0 : result.cost / (result.totalTokens / 1_000_000);
+      const blendedRate = cost / (pricedTokens / 1_000_000);
       elements.blendedRate.textContent = `${usdFormatter.format(blendedRate)} / 1M`;
-      elements.formulaCopy.textContent = `${formatFullTokens(result.uncachedTokens)} × $${rates.inputRate}/M + ${formatFullTokens(result.cachedTokens)} × $${rates.cachedRate}/M + ${formatFullTokens(result.outputTokens)} × $${rates.outputRate}/M`;
+      elements.formulaCopy.textContent = mix
+        ? `按日求和 · ${mix.shares.map((share) => `${share.label} ${share.percent}%`).join(" · ")}`
+        : "按日求和";
     } else {
       setShareControls(
         {
@@ -398,16 +427,36 @@ function renderCost(appBuckets, totalTokens, startDate, endDate) {
         },
         false,
       );
-      const pricing = estimatedPricing();
-      const result = estimateCost(totalTokens, pricing);
-      elements.costSourceHelp.textContent = detailedSource
-        ? "详细响应未完整覆盖当前范围，已回退到比例估算。"
-        : "尚未导入详细响应，当前使用比例估算。";
-      elements.uncachedPercent.textContent = `${result.uncachedPercent}%`;
-      elements.blendedRate.textContent = `${usdFormatter.format(result.blendedRate)} / 1M`;
-      elements.formulaCopy.textContent = `${result.uncachedPercent}% × $${pricing.inputRate} + ${pricing.cachedPercent}% × $${pricing.cachedRate} + ${pricing.outputPercent}% × $${pricing.outputRate}`;
-      elements.estimatedCost.textContent = usdFormatter.format(result.cost);
-      elements.costDetail.textContent = `${pricing.cachedPercent}% 缓存输入 · ${result.uncachedPercent}% 未缓存输入 · ${pricing.outputPercent}% 输出`;
+      const detailedByDate = new Map(
+        detailedBuckets.map((bucket) => [bucket.startDate, bucket]),
+      );
+      let cost = 0;
+      let pricedTokens = 0;
+      let lastResult = null;
+      for (const bucket of appBuckets) {
+        const rates = blendModelRates(detailedByDate.get(bucket.startDate)?.models);
+        if (!rates) {
+          continue;
+        }
+        lastResult = estimateCost(bucket.tokens, estimatedPricing(rates));
+        cost += lastResult.cost;
+        pricedTokens += bucket.tokens;
+      }
+      if (pricedTokens === 0) {
+        throw new Error("导入含模型 turns 的详细响应后才能按实际模型计价");
+      }
+      const mix = summarizeModelMix(detailedBuckets);
+      const blendedRate = cost / (pricedTokens / 1_000_000);
+      elements.costSourceHelp.textContent = "详细响应未完整覆盖当前范围，已用有模型占比的日期做比例估算。";
+      elements.uncachedPercent.textContent = lastResult
+        ? `${lastResult.uncachedPercent}%`
+        : `${100 - estimatedShares.cachedPercent - estimatedShares.outputPercent}%`;
+      elements.blendedRate.textContent = `${usdFormatter.format(blendedRate)} / 1M`;
+      elements.formulaCopy.textContent = mix
+        ? `${100 - estimatedShares.cachedPercent - estimatedShares.outputPercent}% / ${estimatedShares.cachedPercent}% / ${estimatedShares.outputPercent}% × turns 加权官方单价`
+        : "等待模型占比";
+      elements.estimatedCost.textContent = usdFormatter.format(cost);
+      elements.costDetail.textContent = `${estimatedShares.cachedPercent}% 缓存输入 · ${100 - estimatedShares.cachedPercent - estimatedShares.outputPercent}% 未缓存输入 · ${estimatedShares.outputPercent}% 输出`;
     }
     elements.estimatedCost.classList.remove("skeleton-text");
   } catch (error) {
@@ -459,8 +508,8 @@ function render() {
   elements.totalTokens.classList.remove("skeleton-text");
 
   renderComparison(startDate, endDate);
-  renderCost(appBuckets, appTotalTokens, startDate, endDate);
-  const dailyRows = mergeDailyUsage(appBuckets, detailedBuckets, currentRates());
+  renderCost(appBuckets, startDate, endDate);
+  const dailyRows = mergeDailyUsage(appBuckets, detailedBuckets);
   renderChart(dailyRows);
   renderTable(dailyRows);
 }
@@ -550,10 +599,6 @@ elements.saveImport.addEventListener("click", saveDetailedImport);
 elements.startDate.addEventListener("change", render);
 elements.endDate.addEventListener("change", render);
 elements.costSource.addEventListener("change", render);
-elements.pricingProfile.addEventListener("change", applyPricingProfile);
-for (const input of [elements.inputRate, elements.cachedRate, elements.outputRate]) {
-  input.addEventListener("input", render);
-}
 elements.cachedPercent.addEventListener("input", () => {
   if (!elements.cachedPercent.readOnly) {
     estimatedShares.cachedPercent = parseNumber(elements.cachedPercent);
@@ -567,5 +612,4 @@ elements.outputPercent.addEventListener("input", () => {
   }
 });
 
-applyPricingProfile();
 loadUsage();

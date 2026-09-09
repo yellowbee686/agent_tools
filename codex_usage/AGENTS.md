@@ -23,17 +23,20 @@ Do not use the Enterprise Analytics API for this tool.
   Git-ignored `data/` directory with file mode `0600`.
 - Never import or persist request headers, cookies, bearer tokens, or copied
   cURL commands. The detailed importer accepts response JSON only.
-- Normalize detailed daily token categories in `usage_store.py`; reject
-  malformed, negative, or unclassified token data before exact cost math.
+- Normalize detailed daily token categories and model turn counts in
+  `usage_store.py`; reject malformed, negative, or unclassified token data
+  before exact cost math.
 - Compare sources by UTC date. Treat exact values separately from differences
   within 1%, material mismatches, and single-source dates.
 - Merge both sources into the daily chart and table. Use stacked detailed
   categories when available and a clearly labeled app-server-only bar when not.
 - Daily table cost must use detailed category tokens only. Never substitute a
-  percentage estimate for a missing detailed day.
+  percentage estimate for a missing detailed day. Price each detailed day with
+  official Standard API rates weighted by that day's model turns.
 - Bind the dashboard to `127.0.0.1` only and serve an explicit asset allowlist.
 - Keep measured token data visually and semantically distinct from modeled API
-  cost. Cost assumptions must remain visible and editable.
+  cost. Token-share assumptions remain visible and editable; model rates come
+  from the imported mix and the official catalog, not from a UI model picker.
 - `web/calculations.js` owns browser-side date filtering and cost math. Keep it
   free of DOM dependencies so Node tests can exercise it directly.
 
