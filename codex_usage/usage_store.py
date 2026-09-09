@@ -44,62 +44,9 @@ def _token_value(totals: dict[str, object], field: str) -> int:
     return value
 
 
-def _count_value(raw: dict[str, object], field: str, index: int, model_index: int) -> int:
-    value = raw.get(field)
-    if value is None:
-        return 0
-    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-        raise SnapshotError(
-            f"detailed data row {index} model {model_index} field {field!r} "
-            "must be a non-negative integer"
-        )
-    return value
-
-
-def _normalize_models(raw_row: dict[str, object], index: int) -> list[dict[str, object]]:
-    models = raw_row.get("models")
-    if models is None:
-        return []
-    if not isinstance(models, list):
-        raise SnapshotError(f"detailed data row {index} field 'models' must be a list")
-    normalized: list[dict[str, object]] = []
-    for model_index, raw_model in enumerate(models):
-        if not isinstance(raw_model, dict):
-            raise SnapshotError(f"detailed data row {index} model {model_index} must be an object")
-        name = raw_model.get("model")
-        if not isinstance(name, str) or name.strip() == "":
-            raise SnapshotError(f"detailed data row {index} model {model_index} has no model id")
-        normalized.append(
-            {
-                "model": name,
-                "turns": _count_value(raw_model, "turns", index, model_index),
-                "threads": _count_value(raw_model, "threads", index, model_index),
-            }
-        )
-    return normalized
-
-
-def _merge_models(
-    existing: object, incoming: list[dict[str, object]]
-) -> list[dict[str, object]]:
-    if not isinstance(existing, list):
-        raise SnapshotError("normalized detailed models must be a list")
-    by_name: dict[str, dict[str, object]] = {}
-    for entry in [*existing, *incoming]:
-        if not isinstance(entry, dict):
-            raise SnapshotError("normalized model entry is invalid")
-        name = entry.get("model")
-        if not isinstance(name, str):
-            raise SnapshotError("normalized model id is invalid")
-        current = by_name.setdefault(name, {"model": name, "turns": 0, "threads": 0})
-        current["turns"] = int(current["turns"]) + int(entry["turns"])
-        current["threads"] = int(current["threads"]) + int(entry["threads"])
-    return list(by_name.values())
-
-
 def normalize_detailed_usage(payload: object) -> dict[str, object]:
     rows, group_by = _rows_from_payload(payload)
-    by_date: dict[str, dict[str, object]] = {}
+    by_date: dict[str, dict[str, int | str]] = {}
     for index, raw_row in enumerate(rows):
         if not isinstance(raw_row, dict):
             raise SnapshotError(f"detailed data row {index} must be an object")
@@ -135,7 +82,6 @@ def normalize_detailed_usage(payload: object) -> dict[str, object]:
                 "textOutputTokens": 0,
                 "textTotalTokens": 0,
                 "componentDelta": 0,
-                "models": [],
             },
         )
         for field, value in values.items():
@@ -149,7 +95,6 @@ def normalize_detailed_usage(payload: object) -> dict[str, object]:
             - int(bucket["uncachedTextInputTokens"])
             - int(bucket["textOutputTokens"])
         )
-        bucket["models"] = _merge_models(bucket["models"], _normalize_models(raw_row, index))
 
     buckets = [by_date[key] for key in sorted(by_date)]
     totals = {

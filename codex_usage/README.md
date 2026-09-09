@@ -32,13 +32,13 @@ dashboard provides:
 - Inclusive start and end date selection.
 - Daily token chart and sortable reading order in a detailed table.
 - Period token total, active-day count, and daily average.
-- API-equivalent cost estimates from imported per-day model mix.
-- Official Standard rates: GPT-6 Astra $10/$1/$50, GPT-5.6 Sol $4/$0.40/$20,
-  GPT-5.6 Terra $2/$0.20/$12, and GPT-5.6 Luna $0.20/$0.02/$1.20 per 1M
-  tokens. Mix is weighted by that day's model turns because Analytics does
-  not split tokens by model.
+- API-equivalent cost estimates with editable pricing and token shares.
+- Model presets using official Standard rates: GPT-6 Astra $10/$1/$50,
+  GPT-5.6 Sol $4/$0.40/$20, GPT-5.6 Terra $2/$0.20/$12, and GPT-5.6 Luna
+  $0.20/$0.02/$1.20 per 1M tokens. The selected rates apply to all tokens
+  in the range.
 - A detailed-response importer for exact cached, uncached, and output token
-  categories, plus the model mix used for pricing.
+  categories.
 - Per-day validation between the Codex app-server and imported ChatGPT
   Analytics response.
 - A stacked daily chart and detailed table with cached input, uncached input,
@@ -53,9 +53,8 @@ python3 web_server.py --no-open
 ```
 
 The default estimate assumes 90% cached input, 9% uncached input, and 1%
-output when a date has model mix but the detailed token categories do not
-cover the selected range. These shares are adjustable. Model rates always
-come from the imported Analytics `models` list, not from a UI preset.
+output. These shares are adjustable in the page. They are assumptions because
+the personal account usage method returns only daily total tokens.
 
 ### Import detailed ChatGPT Analytics data
 

@@ -2,8 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  blendModelRates,
-  detailedBucketCost,
   estimateCost,
   estimateDetailedCost,
   filterBuckets,
@@ -71,51 +69,17 @@ test("calculates exact category cost from imported detailed tokens", () => {
   assert.equal(result.outputPercent, 10);
 });
 
-test("blends official Standard rates by model turns", () => {
-  const rates = blendModelRates([
-    { model: "gpt-6-astra", turns: 1 },
-    { model: "gpt-5.6-sol", turns: 1 },
-  ]);
+test("estimates GPT-6 Astra API-equivalent cost from official standard rates", () => {
+  const result = estimateCost(1_000_000, {
+    inputRate: 10,
+    cachedRate: 1,
+    outputRate: 50,
+    cachedPercent: 90,
+    outputPercent: 1,
+  });
 
-  assert.equal(rates.inputRate, 7);
-  assert.equal(rates.cachedRate, 0.7);
-  assert.equal(rates.outputRate, 35);
-  assert.equal(rates.pricedTurns, 2);
-});
-
-test("ignores zero-turn models and rejects unknown models with turns", () => {
-  const rates = blendModelRates([
-    { model: "gpt-6-astra", turns: 2 },
-    { model: "other", turns: 0 },
-  ]);
-  assert.equal(rates.inputRate, 10);
-  assert.equal(blendModelRates([]), null);
-  assert.equal(blendModelRates([{ model: "gpt-6-astra", turns: 0 }]), null);
-  assert.throws(
-    () => blendModelRates([{ model: "other", turns: 1 }]),
-    /other/,
-  );
-});
-
-test("prices a detailed day with that day's official model rates", () => {
-  assert.equal(
-    detailedBucketCost({
-      cachedTextInputTokens: 0,
-      uncachedTextInputTokens: 1_000_000,
-      textOutputTokens: 0,
-      models: [{ model: "gpt-6-astra", turns: 10 }],
-    }),
-    10,
-  );
-  assert.equal(
-    detailedBucketCost({
-      cachedTextInputTokens: 0,
-      uncachedTextInputTokens: 1_000_000,
-      textOutputTokens: 0,
-      models: [],
-    }),
-    null,
-  );
+  assert.equal(result.uncachedPercent, 9);
+  assert.equal(result.cost, 2.3);
 });
 
 test("merges detailed categories with app-server totals and exact daily cost", () => {
@@ -131,7 +95,6 @@ test("merges detailed categories with app-server totals and exact daily cost", (
         uncachedTextInputTokens: 30,
         textOutputTokens: 10,
         textTotalTokens: 100,
-        models: [{ model: "gpt-5.6-sol", turns: 1 }],
       },
       {
         startDate: "2026-08-24",
@@ -139,9 +102,9 @@ test("merges detailed categories with app-server totals and exact daily cost", (
         uncachedTextInputTokens: 50,
         textOutputTokens: 30,
         textTotalTokens: 200,
-        models: [],
       },
     ],
+    { inputRate: 4, cachedRate: 0.4, outputRate: 20 },
   );
 
   assert.deepEqual(rows.map((row) => row.startDate), [
@@ -154,5 +117,4 @@ test("merges detailed categories with app-server totals and exact daily cost", (
   assert.equal(rows[1].cachedTextInputTokens, null);
   assert.equal(rows[1].exactCost, null);
   assert.equal(rows[2].appServerTokens, null);
-  assert.equal(rows[2].exactCost, null);
 });

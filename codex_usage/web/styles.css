@@ -691,8 +691,39 @@ tbody tr:hover {
   margin-top: 8px;
 }
 
-.assumption-block select + .help-copy {
+.assumption-block select + .help-copy,
+.profile-options + .help-copy {
   margin-top: 9px;
+}
+
+.profile-options {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.profile-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.profile-options label:has(input:checked) {
+  border-color: var(--focus);
+  background: var(--surface-muted);
+}
+
+.profile-options input {
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .help-copy {
@@ -707,38 +738,6 @@ tbody tr:hover {
   grid-template-columns: repeat(3, 1fr);
   gap: 9px;
   padding-top: 22px;
-}
-
-.rate-readout p {
-  margin: 0 0 6px;
-  color: var(--ink-muted);
-  font-size: 0.68rem;
-}
-
-.rate-readout strong {
-  font-size: 0.95rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.model-mix-list {
-  display: grid;
-  gap: 8px;
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.model-mix-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.model-mix-list .empty-mix {
-  color: var(--ink-muted);
 }
 
 .money-input,

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
     <title>Codex Usage</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=astra-presets" />
   </head>
   <body>
     <header class="site-header">
@@ -197,28 +197,33 @@
           </div>
 
           <div class="assumption-block">
-            <label>实际模型</label>
-            <ul class="model-mix-list" id="model-mix"></ul>
-            <p class="help-copy" id="model-mix-help">
-              导入详细响应后，按当天 turns 占比混合官方 Standard API 价。Analytics 不按模型拆 Token。超过 272K 输入的长上下文加价未计入。
+            <label id="pricing-profile-label">价格配置</label>
+            <div
+              class="profile-options"
+              id="pricing-profile"
+              role="radiogroup"
+              aria-labelledby="pricing-profile-label"
+            ></div>
+            <p class="help-copy">
+              所选模型的官方 Standard API 价会套用到区间全部 Token。超过 272K 输入的单次请求存在长上下文加价，本估算未计入。
             </p>
           </div>
 
-          <div class="rate-grid" aria-label="按 turns 加权的每百万 Token 单价">
-            <div class="rate-readout">
-              <p>未缓存输入</p>
-              <strong id="input-rate">—</strong>
+          <div class="rate-grid" aria-label="每百万 Token 单价">
+            <div class="field-group">
+              <label for="input-rate">未缓存输入</label>
+              <div class="money-input"><span>$</span><input id="input-rate" type="number" min="0" step="0.1" value="10" /></div>
             </div>
-            <div class="rate-readout">
-              <p>缓存输入</p>
-              <strong id="cached-rate">—</strong>
+            <div class="field-group">
+              <label for="cached-rate">缓存输入</label>
+              <div class="money-input"><span>$</span><input id="cached-rate" type="number" min="0" step="0.1" value="1" /></div>
             </div>
-            <div class="rate-readout">
-              <p>输出</p>
-              <strong id="output-rate">—</strong>
+            <div class="field-group">
+              <label for="output-rate">输出</label>
+              <div class="money-input"><span>$</span><input id="output-rate" type="number" min="0" step="0.1" value="50" /></div>
             </div>
           </div>
-          <p class="unit-label">USD / 1M TOKENS · TURNS 加权</p>
+          <p class="unit-label">USD / 1M TOKENS</p>
 
           <div class="assumption-block shares">
             <div class="field-row">
@@ -245,17 +250,18 @@
 
           <div class="formula-block">
             <p>当前混合单价</p>
-            <strong id="blended-rate">—</strong>
-            <code id="formula-copy">等待模型占比</code>
+            <strong id="blended-rate">$2.30 / 1M</strong>
+            <code id="formula-copy">9% × $10 + 90% × $1 + 1% × $50</code>
           </div>
 
           <a
             class="source-link"
-            href="https://developers.openai.com/api/docs/models"
+            id="pricing-docs"
+            href="https://developers.openai.com/api/docs/models/gpt-6-astra"
             target="_blank"
             rel="noreferrer"
           >
-            查看官方模型定价
+            查看官方 GPT-6 Astra 定价
           </a>
         </aside>
       </div>
@@ -266,6 +272,6 @@
       <p>实测用量来自 Codex，费用来自你的定价假设。</p>
     </footer>
 
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/app.js?v=astra-presets"></script>
   </body>
 </html>

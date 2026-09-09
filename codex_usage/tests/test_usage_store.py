@@ -43,66 +43,6 @@ class DetailedUsageTest(unittest.TestCase):
         self.assertEqual(normalized["dailyUsageBuckets"][1]["cachedTextInputTokens"], 120)
         self.assertEqual(normalized["totals"]["textTotalTokens"], 300)
         self.assertEqual(normalized["totals"]["componentDelta"], 0)
-        self.assertEqual(normalized["dailyUsageBuckets"][0]["models"], [])
-        self.assertEqual(normalized["dailyUsageBuckets"][1]["models"], [])
-
-    def test_extracts_model_turn_counts(self) -> None:
-        payload = {
-            "group_by": "day",
-            "data": [
-                {
-                    "date": "2026-09-03",
-                    "totals": {
-                        "cached_text_input_tokens": 10,
-                        "uncached_text_input_tokens": 5,
-                        "text_output_tokens": 1,
-                        "text_total_tokens": 16,
-                    },
-                    "models": [
-                        {"model": "gpt-5.6-sol", "turns": 23, "threads": 10},
-                        {"model": "gpt-6-astra", "turns": 7, "threads": 2},
-                    ],
-                },
-                {
-                    "date": "2026-09-09",
-                    "totals": {
-                        "cached_text_input_tokens": 4,
-                        "uncached_text_input_tokens": 2,
-                        "text_output_tokens": 1,
-                        "text_total_tokens": 7,
-                    },
-                },
-            ],
-        }
-
-        normalized = usage_store.normalize_detailed_usage(payload)
-
-        self.assertEqual(
-            normalized["dailyUsageBuckets"][0]["models"],
-            [
-                {"model": "gpt-5.6-sol", "turns": 23, "threads": 10},
-                {"model": "gpt-6-astra", "turns": 7, "threads": 2},
-            ],
-        )
-        self.assertEqual(normalized["dailyUsageBuckets"][1]["models"], [])
-
-    def test_rejects_non_list_models(self) -> None:
-        payload = {
-            "data": [
-                {
-                    "date": "2026-09-03",
-                    "totals": {
-                        "cached_text_input_tokens": 1,
-                        "uncached_text_input_tokens": 1,
-                        "text_output_tokens": 0,
-                        "text_total_tokens": 2,
-                    },
-                    "models": {"model": "gpt-6-astra"},
-                }
-            ]
-        }
-        with self.assertRaisesRegex(usage_store.SnapshotError, "models"):
-            usage_store.normalize_detailed_usage(payload)
 
     def test_rejects_missing_daily_rows(self) -> None:
         with self.assertRaisesRegex(usage_store.SnapshotError, "data"):

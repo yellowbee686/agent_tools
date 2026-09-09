@@ -105,64 +105,12 @@ export function estimateDetailedCost(buckets, pricing) {
   };
 }
 
-export function blendModelRates(models) {
-  if (!Array.isArray(models) || models.length === 0) {
-    return null;
-  }
-  const turnsByModel = new Map();
-  for (const entry of models) {
-    const turns = entry.turns;
-    if (!Number.isFinite(turns) || turns < 0) {
-      throw new Error("模型 turns 必须是非负数");
-    }
-    if (turns === 0) {
-      continue;
-    }
-    if (!MODEL_RATES[entry.model]) {
-      throw new Error(`没有官方 API 单价: ${entry.model}`);
-    }
-    turnsByModel.set(entry.model, (turnsByModel.get(entry.model) ?? 0) + turns);
-  }
-  const pricedTurns = [...turnsByModel.values()].reduce((sum, turns) => sum + turns, 0);
-  if (pricedTurns === 0) {
-    return null;
-  }
-  const shares = [...turnsByModel.entries()].map(([model, turns]) => {
-    const rates = MODEL_RATES[model];
-    return {
-      model,
-      label: rates.label,
-      turns,
-      percent: Number(((turns / pricedTurns) * 100).toFixed(2)),
-      inputRate: rates.inputRate,
-      cachedRate: rates.cachedRate,
-      outputRate: rates.outputRate,
-    };
-  });
-  const weighted = (field) =>
-    shares.reduce((sum, share) => sum + (share.turns / pricedTurns) * share[field], 0);
-  return {
-    inputRate: weighted("inputRate"),
-    cachedRate: weighted("cachedRate"),
-    outputRate: weighted("outputRate"),
-    pricedTurns,
-    shares,
-  };
-}
-
-export function summarizeModelMix(buckets) {
-  return blendModelRates(buckets.flatMap((bucket) => bucket.models ?? []));
-}
-
-export function detailedBucketCost(bucket) {
-  const rates = blendModelRates(bucket.models);
-  if (!rates) {
-    return null;
-  }
-  return estimateDetailedCost([bucket], rates).cost;
-}
-
-export function mergeDailyUsage(appBuckets, detailedBuckets) {
+export function mergeDailyUsage(appBuckets, detailedBuckets, pricing) {
+  const ratesAreValid = [
+    pricing.inputRate,
+    pricing.cachedRate,
+    pricing.outputRate,
+  ].every((value) => Number.isFinite(value) && value >= 0);
   const appByDate = new Map(appBuckets.map((bucket) => [bucket.startDate, bucket]));
   const detailedByDate = new Map(
     detailedBuckets.map((bucket) => [bucket.startDate, bucket]),
@@ -172,14 +120,9 @@ export function mergeDailyUsage(appBuckets, detailedBuckets) {
     .map((startDate) => {
       const app = appByDate.get(startDate);
       const detailed = detailedByDate.get(startDate);
-      let exactCost = null;
-      if (detailed) {
-        try {
-          exactCost = detailedBucketCost(detailed);
-        } catch {
-          exactCost = null;
-        }
-      }
+      const exactCost = detailed && ratesAreValid
+        ? estimateDetailedCost([detailed], pricing).cost
+        : null;
       return {
         startDate,
         appServerTokens: app?.tokens ?? null,
