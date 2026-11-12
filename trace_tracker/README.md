@@ -6,15 +6,21 @@ agent tasks or rewriting native traces.
 
 ## Install and run
 
-From the `agent_tools` repository root, using Python 3.10 or later:
+With `uv` installed, run from the `agent_tools` repository root:
 
 ```bash
-uv run --project trace_tracker trace-tracker
+./run_trace_tracker.sh
 ```
 
-This creates the tool's local environment and installs its dependencies. From
-the `trace_tracker` subdirectory, use `uv run trace-tracker` instead.
-Alternatively, install with Python's built-in virtual environment:
+The script works from any working directory and forwards viewer arguments, for
+example `./run_trace_tracker.sh --port 48000 --data-root /path/to/snapshots`.
+`uv` creates `trace_tracker/.venv`, installs the package and dependencies, and
+reuses that environment on later runs. It selects Python 3.10 or later and can
+download a compatible interpreter when needed; the first run normally needs
+network access. From the `trace_tracker` subdirectory, `uv run trace-tracker`
+also works.
+
+Alternatively, with Python 3.10 or later, install using a virtual environment:
 
 ```bash
 python3 -m venv .venv
