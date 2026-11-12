@@ -1,0 +1,9 @@
+$status_block
+<div class="controls">
+  $source_picker
+  <label>Filter:</label>
+  <input id="q" type="search" placeholder="search id / source / root / model / title / end_reason" size="46">
+  <span class="muted">source: $source_label · page size: <a href="?limit=20&source=$source_value">20</a> · <a href="?limit=50&source=$source_value">50</a> · <a href="?limit=100&source=$source_value">100</a></span>
+  <span class="muted" style="margin-left:auto">Showing <span id="match-count">0</span> loaded sessions (page size=$limit)</span>
+</div>
+$session_sections

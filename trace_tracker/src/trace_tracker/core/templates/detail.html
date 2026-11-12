@@ -1,0 +1,25 @@
+$error_block
+<div class="detail-header">
+  <h2>$title</h2>
+  <div class="detail-grid">
+$metadata_rows
+  </div>
+  <div class="detail-actions">
+$actions
+    <span class="muted">role mix: $role_chips</span>
+  </div>
+</div>
+$system_prompt_block
+$tools_block
+<div class="controls">
+  <label>role:</label>
+  <select id="role-filter">
+    <option value="all">all</option>
+$role_options
+  </select>
+  <label>search:</label>
+  <input id="msg-q" type="search" placeholder="filter messages by content / tool / id" size="40">
+  <label><input type="checkbox" id="expand-all"> expand all</label>
+  <span class="muted" style="margin-left:auto">Showing <span id="match-count">0</span> / $message_count messages</span>
+</div>
+$messages
