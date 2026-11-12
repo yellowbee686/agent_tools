@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-trace-tracker"
+version = "0.2.0"
+description = "Read-only local trace viewer and parsers for coding agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["zstandard>=0.23,<1"]
+
+[project.scripts]
+trace-tracker = "trace_tracker.run:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"trace_tracker.core" = ["templates/*.html", "static/*.css", "static/*.js"]

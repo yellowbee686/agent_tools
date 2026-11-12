@@ -1,0 +1,14 @@
+"""Canonical trace source names shared by discovery, filtering, and rendering."""
+
+TRACE_SOURCE_ALL = "all"
+TRACE_SOURCE_USER = "user"
+TRACE_SOURCE_RUNTIME = "runtime"
+TRACE_SOURCE_TRACES = "traces"
+TRACE_SOURCE_CUSTOM = "custom"
+
+FILTERABLE_TRACE_SOURCES = (
+    TRACE_SOURCE_USER,
+    TRACE_SOURCE_RUNTIME,
+    TRACE_SOURCE_TRACES,
+)
+TRACE_SOURCE_ORDER = (*FILTERABLE_TRACE_SOURCES, TRACE_SOURCE_CUSTOM)
