@@ -9,6 +9,14 @@ agent tasks or rewriting native traces.
 From the `agent_tools` repository root, using Python 3.10 or later:
 
 ```bash
+uv run --project trace_tracker trace-tracker
+```
+
+This creates the tool's local environment and installs its dependencies. From
+the `trace_tracker` subdirectory, use `uv run trace-tracker` instead.
+Alternatively, install with Python's built-in virtual environment:
+
+```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install ./trace_tracker
 .venv/bin/trace-tracker
